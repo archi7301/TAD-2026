@@ -3,12 +3,7 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="D:/Projects/Artyom/C++/TAD-2026/Common/Common.vcxproj" Id="48aa3452-123e-4ec3-97ef-b908933277f2" />
-  <Project Path="D:/Projects/Artyom/C++/TAD-2026/Lexer/Lexer.vcxproj" Id="3b7642bd-3ca0-4c5a-90a1-b2bbad1d45bd">
-    <BuildDependency Project="D:/Projects/Artyom/C++/TAD-2026/Common/Common.vcxproj" />
-  </Project>
-  <Project Path="D:/Projects/Artyom/C++/TAD-2026/TAD-2026/TAD-2026.vcxproj" Id="5b453a81-72ef-4d25-bdd8-4b6b7ed5180f">
-    <BuildDependency Project="D:/Projects/Artyom/C++/TAD-2026/Common/Common.vcxproj" />
-    <BuildDependency Project="D:/Projects/Artyom/C++/TAD-2026/Lexer/Lexer.vcxproj" />
-  </Project>
+  <Project Path="Common/Common.vcxproj" Id="48aa3452-123e-4ec3-97ef-b908933277f2" />
+  <Project Path="Lexer/Lexer.vcxproj" Id="3b7642bd-3ca0-4c5a-90a1-b2bbad1d45bd" />
+  <Project Path="TAD-2026/TAD-2026.vcxproj" Id="5b453a81-72ef-4d25-bdd8-4b6b7ed5180f" />
 </Solution>
