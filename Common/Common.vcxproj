@@ -18,6 +18,15 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Error.h" />
+    <ClInclude Include="Parm.h" />
+    <ClInclude Include="stdadx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Error.cpp" />
+    <ClCompile Include="Parm.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
