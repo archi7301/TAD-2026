@@ -20,11 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Error.h" />
+    <ClInclude Include="In.h" />
     <ClInclude Include="Parm.h" />
     <ClInclude Include="stdadx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Error.cpp" />
+    <ClCompile Include="In.cpp" />
     <ClCompile Include="Parm.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
