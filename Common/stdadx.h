@@ -4,3 +4,5 @@
 #include <errno.h>    // STRUNCATE
 #include <Windows.h>  // Encoding
 #include <cstdio>	  // printf
+#include <vector>
+#include <string>

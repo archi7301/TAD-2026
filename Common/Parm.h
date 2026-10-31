@@ -2,21 +2,27 @@
 
 // Ключи командной строки (формат: -in:файл)
 #define PARM_IN  L"-in:"
-#define PARM_LOG L"-log:"
 #define PARM_OUT L"-out:"
+#define PARM_LOG L"-log:"
+
+// Ключ без значения: выполнить байт-код виртуальной машиной после трансляции
+#define PARM_RUN L"-run"
 
 #define PARM_MAX_SIZE 260                 // максимальная длина значения параметра (с завершающим нулём)
-#define PARM_LOG_DEFAULT_EXT L".log"      // дописывается к имени входного файла, если -log не задан
-#define PARM_OUT_DEFAULT_EXT L".js"       // дописывается к имени входного файла, если -out не задан
+
+// Расширения по умолчанию: заменяют расширение входного файла (или дописываются, если его нет)
+#define PARM_OUT_DEFAULT_EXT L".tbc"      // если -out не задан
+#define PARM_LOG_DEFAULT_EXT L".log"      // если -log не задан
 
 namespace Parm
 {
-	// Пути к файлам, указанным в командной строке
+	// Параметры, указанные в командной строке
 	struct PARM
 	{
 		wchar_t in[PARM_MAX_SIZE];        // входной файл с исходным кодом
+		wchar_t out[PARM_MAX_SIZE];       // выходной файл с байт-кодом
 		wchar_t log[PARM_MAX_SIZE];       // файл протокола
-		wchar_t out[PARM_MAX_SIZE];       // выходной файл (JavaScript)
+		bool run;                         // выполнить байт-код после трансляции (-run)
 	};
 
 	// Разбирает параметры командной строки.
