@@ -4,5 +4,8 @@
 #include <errno.h>    // STRUNCATE
 #include <Windows.h>  // Encoding
 #include <cstdio>	  // printf
-#include <vector>
-#include <string>
+#include <vector>	  // std::vector
+#include <string>	  // std::string
+#include <ctime>	  // std::time_t, std::tm, std::localtime
+#include <fstream>
+#include <iomanip>
