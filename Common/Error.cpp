@@ -1,3 +1,4 @@
+#include "stdadx.h"
 #include "Error.h"
 
 namespace Error
@@ -72,5 +73,14 @@ namespace Error
 		err.inext.line = static_cast<short>(line);
 		err.inext.col = static_cast<short>(col);
 		return err;
+	}
+
+	std::string ToString(const Entry& e)
+	{
+		std::string result = "Ошибка " + std::to_string(e.id) + ": " + e.message;
+		if (e.inext.line != -1 && e.inext.col != -1)
+			result += ", строка " + std::to_string(e.inext.line)
+			+ ", позиция " + std::to_string(e.inext.col);
+		return result;
 	}
 }
