@@ -2,13 +2,12 @@
 #include "../Common/Error.h"
 #include "../Common/Parm.h"
 #include "../Common/In.h"
+#include "../Common/Log.h"
+#include "../Common/Out.h"
 
 static void PrintError(const Error::Entry& e)
 {
-	printf("Ошибка %d: %s", e.id, e.message);
-	if (e.inext.line != -1 && e.inext.col != -1)
-		printf(" (строка %d, позиция %d)", e.inext.line, e.inext.col);
-	printf("\n");
+	printf("%s\n", Error::ToString(e).c_str());
 }
 
 int wmain(int argc, wchar_t* argv[])
@@ -16,26 +15,41 @@ int wmain(int argc, wchar_t* argv[])
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
 
+	Log::LOG log;       // создаётся закрытым; все функции записи при этом ничего не делают
+	int result = 0;
+
 	try
 	{
-		Parm::PARM parm = Parm::GetParm(argc, argv);
-		In::IN in = In::GetIn(parm.in);
+		Parm::PARM parm = Parm::GetParm(argc, argv);   // ошибки 1, 5, 6: только в консоль
+
+		log = Log::Open(parm.log);                     // ошибка 3: только в консоль
+		Log::WriteHeader(log, parm);
+
+		In::IN in = In::GetIn(parm.in);                // ошибка 2: в консоль и в протокол
+		Log::WriteSource(log, in);
 
 		if (!in.errors.empty())
 		{
+			Log::WriteSection(log, LOG_SECT_ERRORS);
 			for (const Error::Entry& e : in.errors)
+			{
 				PrintError(e);
-			return 1;
+				Log::WriteError(log, e);
+			}
+			Log::Flush(log);
+			result = 1;
 		}
-
-		printf("%s", in.text.c_str());
 	}
 
 	catch (const Error::Entry& e)
 	{
 		PrintError(e);
-		return 1;
+		Log::WriteSection(log, LOG_SECT_ERRORS);
+		Log::WriteError(log, e);
+		Log::Flush(log);
+		result = 1;
 	}
 
-	return 0;
+	Log::Close(log);
+	return result;
 }
