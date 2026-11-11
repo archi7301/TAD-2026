@@ -70,8 +70,8 @@ namespace Error
 	Entry geterrorin(int id, int line, int col)
 	{
 		Entry err = geterror(id);
-		err.inext.line = static_cast<short>(line);
-		err.inext.col = static_cast<short>(col);
+		err.inext.line = line;
+		err.inext.col = col;
 		return err;
 	}
 
