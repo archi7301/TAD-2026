@@ -1,4 +1,5 @@
 #pragma once
+
 #include "stdadx.h"
 
 // Лексемы для ключевых слов
