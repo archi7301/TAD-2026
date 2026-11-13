@@ -4,7 +4,7 @@
 
 namespace Out
 {
-	static void append_uint32_le(std::vector<unsigned char>& buff, unsigned int value)
+	static void append_uint32_le(std::vector<unsigned char>& buff, std::uint32_t value)
 	{
 		buff.push_back((unsigned char)(value & 0xFF));
 		buff.push_back((unsigned char)((value >> 8) & 0xFF));
@@ -12,11 +12,23 @@ namespace Out
 		buff.push_back((unsigned char)((value >> 24) & 0xFF));
 	}
 
-	unsigned int AddString(IMAGE& image, const std::string& str)
+	std::uint32_t AddString(IMAGE& image, const std::string& str)
 	{
-		unsigned int offset = static_cast<unsigned int>(image.consts.size());
-		image.consts.push_back(static_cast<unsigned char>(str.size()));
-		image.consts.insert(image.consts.end(), str.begin(), str.end());
+		if (str.size() > TBC_MAX_STRING_SIZE)
+			throw ERROR_THROW(104);
+
+		const auto offset = static_cast<std::uint32_t>(image.consts.size());
+
+		image.consts.push_back(
+			static_cast<unsigned char>(str.size())
+		);
+
+		image.consts.insert(
+			image.consts.end(),
+			str.begin(),
+			str.end()
+		);
+
 		return offset;
 	}
 
@@ -27,8 +39,14 @@ namespace Out
 			buff.push_back(static_cast<unsigned char>(TBC_SIGNATURE[i]));
 
 		append_uint32_le(buff, image.entry);
-		append_uint32_le(buff, static_cast<unsigned int>(image.consts.size()));
-		append_uint32_le(buff, static_cast<unsigned int>(image.code.size()));
+		append_uint32_le(
+			buff,
+			static_cast<std::uint32_t>(image.consts.size())
+		);
+		append_uint32_le(
+			buff,
+			static_cast<std::uint32_t>(image.code.size())
+		);
 
 		FILE* file = nullptr;
 		bool ok = true;

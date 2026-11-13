@@ -10,7 +10,7 @@ namespace Out
 	// Заполняется генератором кода, Out его только записывает.
 	struct IMAGE
 	{
-		unsigned int entry;                  // адрес точки входа main (смещение в области кода)
+		std::uint32_t entry = 0;             // адрес точки входа main (смещение в области кода)
 		std::vector<unsigned char> consts;   // область констант (строки в формате из Bytecode.h)
 		std::vector<unsigned char> code;     // область кода (команды виртуальной машины)
 	};
@@ -19,7 +19,7 @@ namespace Out
 	// в этой области (по нему команда вывода строки найдёт литерал).
 	// Длина строки не должна превышать TBC_MAX_STRING_SIZE: это проверяет
 	// лексический анализатор (ошибка 104).
-	unsigned int AddString(IMAGE& image, const std::string& str);
+	std::uint32_t AddString(IMAGE& image, const std::string& str);
 
 	// Записывает образ в выходной файл: заголовок, область констант, область кода.
 	// Если файл невозможно создать или запись не удалась, удаляет недописанный
