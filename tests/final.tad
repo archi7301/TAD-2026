@@ -1,0 +1,49 @@
+-- Контрольный пример языка TAD-2026
+summon lore;
+
+spell double(n: octet) -> octet = n + n;
+
+spell add(a: octet, b: octet) -> octet = a + b;
+
+spell is_even(n: octet) -> truth =
+    n mask 1 == 0;
+
+spell clamp(n: octet) -> octet =
+    when n > 100 then 100 else n;
+
+spell bits(a: octet, b: octet) -> octet =
+    (flip a mask b) fuse (a * 2 - 1);
+
+ritual show(label: octet) =
+open
+    chant 'value:';
+    chant label;
+close
+
+ritual main() =
+open
+    rune d: octet <- day();
+    rune mo: octet <- month();
+    rune h: octet <- hour();
+    rune m: octet <- minute();
+    flux i: octet <- 0;
+    chant 'date and time:';
+    chant d;
+    chant mo;
+    chant h;
+    chant m;
+    chant m < 30;
+    chant is_even(h);
+    chant h ~> double ~> clamp;
+    chant h ~> add(m);
+    chant bits(12, 10);
+    chant 5 - 10;
+    chant when i == 0 then yes else no;
+    cycle
+        rune sq: octet <- i * i;
+        show(sq);
+        i <- i + 1;
+    until i == 3;
+    chant yes;
+    chant 5 != 5;
+close
