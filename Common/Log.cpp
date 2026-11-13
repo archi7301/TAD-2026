@@ -20,6 +20,70 @@ namespace Log
 		return result;
 	}
 
+	static std::string source_to_utf8(const std::string& text)
+	{
+		if (text.empty())
+			return {};
+
+		const int source_size = static_cast<int>(text.size());
+
+		const int wide_size = MultiByteToWideChar(
+			1251,
+			0,
+			text.data(),
+			source_size,
+			nullptr,
+			0
+		);
+
+		if (wide_size == 0)
+			throw ERROR_THROW(3);
+
+		std::wstring wide(wide_size, L'\0');
+
+		if (MultiByteToWideChar(
+			1251,
+			0,
+			text.data(),
+			source_size,
+			wide.data(),
+			wide_size) == 0)
+		{
+			throw ERROR_THROW(3);
+		}
+
+		const int utf8_size = WideCharToMultiByte(
+			CP_UTF8,
+			0,
+			wide.data(),
+			wide_size,
+			nullptr,
+			0,
+			nullptr,
+			nullptr
+		);
+
+		if (utf8_size == 0)
+			throw ERROR_THROW(3);
+
+		std::string result(utf8_size, '\0');
+
+		if (WideCharToMultiByte(
+			CP_UTF8,
+			0,
+			wide.data(),
+			wide_size,
+			result.data(),
+			utf8_size,
+			nullptr,
+			nullptr) == 0)
+		{
+			throw ERROR_THROW(3);
+		}
+
+		return result;
+	}
+
 	// Текущее локальное время в виде «дд.мм.гггг чч:мм:сс»
 	static std::string CurrentTime()
 	{
@@ -68,7 +132,11 @@ namespace Log
 	{
 		if (!log.file.is_open())
 			return;
+
 		log.file.flush();
+
+		if (!log.file)
+			throw ERROR_THROW(3);
 	}
 
 	void WriteSection(LOG& log, const char* title)
@@ -103,26 +171,41 @@ namespace Log
 
 		WriteSection(log, LOG_SECT_SOURCE);
 
+		const std::string source = source_to_utf8(in.original_text);
+
 		const int width = static_cast<int>(std::to_string(in.lines).size());
+
 		size_t start = 0;
 		int number = 1;
 
 		while (true)
 		{
-			size_t end = in.text.find('\n', start);
-			bool last = (end == std::string::npos);
-			std::string piece = in.text.substr(start, last ? std::string::npos : end - start);
+			const size_t end = source.find('\n', start);
+			const bool last = end == std::string::npos;
 
-			// пустой хвост после последнего перевода строки не выводим
+			std::string piece = source.substr(
+				start,
+				last ? std::string::npos : end - start
+			);
+
+			// CRLF выводим как обычный перевод строки протокола.
+			if (!piece.empty() && piece.back() == '\r')
+				piece.pop_back();
+
 			if (last && piece.empty() && number > 1)
 				break;
 
-			log.file << std::setw(width) << number << " | " << piece << "\n";
+			log.file << std::setw(width)
+				<< number
+				<< " | "
+				<< piece
+				<< '\n';
 
 			if (last)
 				break;
+
 			start = end + 1;
-			number++;
+			++number;
 		}
 
 		WriteLine(log, "");

@@ -33,6 +33,48 @@ namespace Parm
 		return wcsncmp(str, key, wcslen(key)) == 0;
 	}
 
+	static bool SameFile(const wchar_t* left, const wchar_t* right)
+	{
+		namespace fs = std::filesystem;
+
+		const fs::path left_path(left);
+		const fs::path right_path(right);
+
+		std::error_code error;
+
+		// Если оба файла существуют, учитывает разные пути к одному файлу.
+		if (fs::equivalent(left_path, right_path, error))
+			return true;
+
+		error.clear();
+		const fs::path normalized_left = fs::weakly_canonical(left_path, error);
+
+		if (error)
+			throw ERROR_THROW(7);
+
+		error.clear();
+		const fs::path normalized_right = fs::weakly_canonical(right_path, error);
+
+		if (error)
+			throw ERROR_THROW(7);
+
+		// Для целевой Windows сравниваем пути без учёта регистра.
+		return _wcsicmp(
+			normalized_left.c_str(),
+			normalized_right.c_str()
+		) == 0;
+	}
+
+	static void CheckPaths(const PARM& parm)
+	{
+		if (SameFile(parm.in, parm.out) ||
+			SameFile(parm.in, parm.log) ||
+			SameFile(parm.out, parm.log))
+		{
+			throw ERROR_THROW(7);
+		}
+	}
+
 	PARM GetParm(int argc, wchar_t* argv[])
 	{
 		PARM parm;
@@ -69,6 +111,7 @@ namespace Parm
 		if (parm.log[0] == L'\0')
 			MakeName(parm.log, parm.in, PARM_LOG_DEFAULT_EXT);
 
+		CheckPaths(parm);
 		return parm;
 	}
 }

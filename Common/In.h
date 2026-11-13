@@ -16,8 +16,9 @@ namespace In
 	// Результат чтения и проверки исходного текста
 	struct IN
 	{
+		std::string original_text;           // исходный текст Windows-1251
 		std::string text;                    // очищенный текст: без комментариев и символов CR
-		int lines;                           // число строк в исходном файле (пустой файл: 1)
+		int lines = 1;                       // число строк в исходном файле (пустой файл: 1)
 		std::vector<Error::Entry> errors;    // найденные ошибки (код 100), не более IN_MAX_ERRORS
 	};
 

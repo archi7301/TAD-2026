@@ -44,10 +44,22 @@ int wmain(int argc, wchar_t* argv[])
 	catch (const Error::Entry& e)
 	{
 		PrintError(e);
-		Log::WriteSection(log, LOG_SECT_ERRORS);
-		Log::WriteError(log, e);
-		Log::Flush(log);
 		result = 1;
+
+		// При ошибке самого протокола повторно писать в него не нужно.
+		if (e.id != 3)
+		{
+			try
+			{
+				Log::WriteSection(log, LOG_SECT_ERRORS);
+				Log::WriteError(log, e);
+				Log::Flush(log);
+			}
+			catch (const Error::Entry& log_error)
+			{
+				PrintError(log_error);
+			}
+		}
 	}
 
 	Log::Close(log);

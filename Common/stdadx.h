@@ -9,3 +9,7 @@
 #include <ctime>	  // std::time_t, std::tm, std::localtime
 #include <fstream>
 #include <iomanip>
+#include <filesystem>
+#include <system_error>
+#include <memory>
+#include <cstdint>

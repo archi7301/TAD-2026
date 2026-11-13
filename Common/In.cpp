@@ -37,19 +37,41 @@ namespace In
 
 	static std::string ReadFile(const wchar_t* path)
 	{
-		FILE* file = nullptr;
-		if (_wfopen_s(&file, path, L"rb") != 0 || file == nullptr)
+		FILE* raw_file = nullptr;
+
+		if (_wfopen_s(&raw_file, path, L"rb") != 0 || raw_file == nullptr)
 			throw ERROR_THROW(2);
 
+		// Файл автоматически закроется и при return, и при исключении.
+		std::unique_ptr<FILE, decltype(&std::fclose)> file(
+			raw_file,
+			&std::fclose
+		);
+
 		std::string text;
-		const size_t buff_size = 4096;
-		char buf[buff_size];
-		size_t bytes_read = 0;
+		char buff[4096];
 
-		while ((bytes_read = fread(buf, 1, buff_size, file)) > 0)
-			text.append(buf, bytes_read);
+		while (true)
+		{
+			const size_t bytes_read = std::fread(
+				buff,
+				1,
+				sizeof(buff),
+				file.get()
+			);
 
-		fclose(file);
+			if (bytes_read > 0)
+				text.append(buff, bytes_read);
+
+			if (bytes_read < sizeof(buff))
+			{
+				if (std::ferror(file.get()))
+					throw ERROR_THROW(8);
+
+				break;
+			}
+		}
+
 		return text;
 	}
 
@@ -65,7 +87,7 @@ namespace In
 		std::string raw = ReadFile(path);
 
 		IN in;
-		in.lines = 1;
+		in.original_text = raw;
 		State state = ST_NORMAL;
 		int line = 1;
 		int col = 0;
