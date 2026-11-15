@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FST.h" />
     <ClInclude Include="Lexer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FST.cpp" />
     <ClCompile Include="Lexer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
