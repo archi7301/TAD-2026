@@ -1,5 +1,6 @@
 #include "Lexer.h"
 #include "FST.h"
+#include "../Common/IT.h"
 
 namespace Lexer
 {
@@ -316,5 +317,80 @@ namespace Lexer
 		}
 
 		return true;
+	}
+
+	LEX Analyze(const In::IN& in)
+	{
+		LEX result;
+		const auto rules = BuildRules();
+		result.lexTable = LT::Create();
+		result.idTable = IT::Create();
+		Cursor cursor;
+		Token token;
+
+		while (NextToken(in.text, cursor, token))
+		{
+			if (!ValidateToken(token, result))
+				continue;
+
+			const Rule* rule = Classify(rules, token.text);
+			if (rule == nullptr)
+			{
+				result.errors.push_back(
+					Error::geterrorin(102, token.line, token.pos)
+				);
+				continue;
+			}
+
+			LT::Entry lexEntry{};
+			lexEntry.lexema = rule->lexema;
+			lexEntry.attr = rule->attr;
+			lexEntry.sn = token.line;
+			lexEntry.pos = token.pos;
+			lexEntry.idxTI = LT::LT_TI_NULLIDX;
+
+			if (lexEntry.lexema == LEX_STR_LITERAL)
+			{
+				const auto content = token.text.substr(1, token.text.size() - 2);
+				int idx = IT::FindLiteral(result.idTable, content);
+
+				if (idx == IT::TI_NULLIDX)
+				{
+					idx = static_cast<int>(result.idTable.table.size());
+
+					IT::Entry idEntry{};
+					idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
+					idEntry.id_data_type = IT::ID_DATA_TYPE::STR;
+					idEntry.str = content;
+					idEntry.id_type = IT::ID_TYPE::LITERAL;
+					IT::Add(result.idTable, idEntry);
+				}
+
+				lexEntry.idxTI = idx;
+			}
+			
+			else if (token.text == "yes" || token.text == "no")
+			{
+				const long long truth_value = (token.text == "yes") ? 1 : 0;
+
+				int idx = IT::FindLiteral(result.idTable, IT::ID_DATA_TYPE::TRUTH, truth_value);
+				if (idx == IT::TI_NULLIDX)
+				{
+					idx = static_cast<int>(result.idTable.table.size());
+					IT::Entry idEntry{};
+					idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
+					idEntry.id_data_type = IT::ID_DATA_TYPE::TRUTH;
+					idEntry.value = truth_value;
+					idEntry.id_type = IT::ID_TYPE::LITERAL;
+					IT::Add(result.idTable, idEntry);
+				}
+
+				lexEntry.idxTI = idx;
+			}
+
+			LT::Add(result.lexTable, lexEntry);
+		}
+
+		return result;
 	}
 }
