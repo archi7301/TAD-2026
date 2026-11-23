@@ -388,6 +388,45 @@ namespace Lexer
 				lexEntry.idxTI = idx;
 			}
 
+			else if (lexEntry.lexema == LEX_INT_LITERAL)
+			{
+				long long value = 0;
+				for (char ch : token.text)
+				{
+					value = value * 10 + (ch - '0');
+					if (value > 255)
+					{
+						value = 256;
+						break;
+					}
+				}
+
+				int idx = IT::FindLiteral(result.idTable, IT::ID_DATA_TYPE::OCTET, value);
+				if (idx == IT::TI_NULLIDX)
+				{
+					idx = static_cast<int>(result.idTable.table.size());
+					IT::Entry idEntry{};
+					idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
+					idEntry.id_data_type = IT::ID_DATA_TYPE::OCTET;
+					idEntry.value = value;
+					idEntry.id_type = IT::ID_TYPE::LITERAL;
+					IT::Add(result.idTable, idEntry);
+				}
+
+				lexEntry.idxTI = idx;
+			}
+
+			else if (lexEntry.lexema == LEX_ID)
+			{
+				lexEntry.idxTI = static_cast<int>(result.idTable.table.size());
+				IT::Entry idEntry{};
+				idEntry.name = token.text;
+				idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
+				idEntry.id_type = IT::ID_TYPE::UNKNOWN;
+				idEntry.id_data_type = IT::ID_DATA_TYPE::NONE;
+				IT::Add(result.idTable, idEntry);
+			}
+
 			LT::Add(result.lexTable, lexEntry);
 		}
 
