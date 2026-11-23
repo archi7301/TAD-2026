@@ -4,6 +4,7 @@
 #include "../Common/In.h"
 #include "../Common/Log.h"
 #include "../Common/Out.h"
+#include "../Lexer/Lexer.h"
 
 static void PrintError(const Error::Entry& e)
 {
@@ -28,6 +29,8 @@ int wmain(int argc, wchar_t* argv[])
 		In::IN in = In::GetIn(parm.in);                // ошибка 2: в консоль и в протокол
 		Log::WriteSource(log, in);
 
+
+
 		if (!in.errors.empty())
 		{
 			Log::WriteSection(log, LOG_SECT_ERRORS);
@@ -38,6 +41,22 @@ int wmain(int argc, wchar_t* argv[])
 			}
 			Log::Flush(log);
 			result = 1;
+		}
+
+		else 
+		{
+			Lexer::LEX lex = Lexer::Analyze(in);
+			if (!lex.errors.empty())
+			{
+				Log::WriteSection(log, LOG_SECT_ERRORS);
+				for (const Error::Entry& e : lex.errors)
+				{
+					PrintError(e);
+					Log::WriteError(log, e);
+				}
+				Log::Flush(log);
+				result = 1;
+			}
 		}
 	}
 
