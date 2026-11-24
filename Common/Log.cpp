@@ -233,6 +233,68 @@ namespace Log
 		}
 	}
 
+	void WriteIdTable(LOG& log, const IT::IdTable& table)
+	{
+		if (!log.file.is_open())
+			return;
+
+		WriteSection(log, LOG_SECT_IDS);
+		log.file << "Индекс | Имя / значение | Вид | Тип | Первая лексема\n";
+
+		for (size_t i = 0; i < table.table.size(); ++i)
+		{
+			const IT::Entry& entry = table.table[i];
+
+			std::string nameOrValue = entry.name;
+			if (entry.id_type == IT::ID_TYPE::LITERAL)
+			{
+				switch (entry.id_data_type)
+				{
+				case IT::ID_DATA_TYPE::STR:
+					nameOrValue = "'" + entry.str + "'";
+					break;
+				case IT::ID_DATA_TYPE::TRUTH:
+					nameOrValue = (entry.value == 1) ? "yes" : "no";
+					break;
+				case IT::ID_DATA_TYPE::OCTET:
+					nameOrValue = std::to_string(entry.value);
+					break;
+				default:
+					nameOrValue = "-";
+					break;
+				}
+			}
+
+			const char* idTypeStr = "UNKNOWN";
+			switch (entry.id_type)
+			{
+			case IT::ID_TYPE::FUNC:    idTypeStr = "FUNC"; break;
+			case IT::ID_TYPE::PROC:    idTypeStr = "PROC"; break;
+			case IT::ID_TYPE::PARAM:   idTypeStr = "PARAM"; break;
+			case IT::ID_TYPE::RUNE:    idTypeStr = "RUNE"; break;
+			case IT::ID_TYPE::FLUX:    idTypeStr = "FLUX"; break;
+			case IT::ID_TYPE::LIB:     idTypeStr = "LIB"; break;
+			case IT::ID_TYPE::LITERAL: idTypeStr = "LITERAL"; break;
+			case IT::ID_TYPE::UNKNOWN: break;
+			}
+
+			const char* dataTypeStr = "NONE";
+			switch (entry.id_data_type)
+			{
+			case IT::ID_DATA_TYPE::STR:   dataTypeStr = "STR"; break;
+			case IT::ID_DATA_TYPE::TRUTH: dataTypeStr = "TRUTH"; break;
+			case IT::ID_DATA_TYPE::OCTET: dataTypeStr = "OCTET"; break;
+			case IT::ID_DATA_TYPE::NONE:  break;
+			}
+
+			log.file << i << " | "
+				<< nameOrValue << " | "
+				<< idTypeStr << " | "
+				<< dataTypeStr << " | "
+				<< entry.idx_first_LE << '\n';
+		}
+	}
+
 	void WriteError(LOG& log, const Error::Entry& e)
 	{
 		WriteLine(log, Error::ToString(e).c_str());

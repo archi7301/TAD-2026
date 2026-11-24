@@ -5,6 +5,7 @@
 #include "Parm.h"
 #include "In.h"
 #include "LT.h"
+#include "IT.h"
 
 // Название транслятора для заголовка протокола
 #define LOG_TITLE         "Протокол трансляции TAD-2026"
@@ -55,8 +56,11 @@ namespace Log
 	// Пишет сообщение об ошибке в том же формате, что и в консоли.
 	void WriteError(LOG& log, const Error::Entry& e);
 
-	// Вывод ТИ в лог
+	// Вывод ТЛ в лог
 	void WriteLexTable(LOG& log, const LT::LexTable& table);
+
+	// Вывод ТИ в лог
+	void WriteIdTable(LOG& log, const IT::IdTable& table);
 
 	// Сбрасывает буфер на диск; вызывается после каждого раздела.
 	void Flush(LOG& log);
