@@ -212,6 +212,27 @@ namespace Log
 		Flush(log);
 	}
 
+	void WriteLexTable(LOG& log, const LT::LexTable& table)
+	{
+		if (!log.file.is_open())
+			return;
+
+		WriteSection(log, LOG_SECT_LEXEMS);
+
+		for (size_t i{}; i < table.table.size(); ++i)
+		{
+			const LT::Entry& entry = table.table[i];
+			const char attr = (entry.attr == LT::ATTR_NONE) ? '-' : entry.attr;
+
+			log.file << i << " | "
+				<< entry.lexema << " | "
+				<< attr << " | "
+				<< "str: " << entry.sn << " | "
+				<< "pos: " << entry.pos << " | "
+				<< "idxTI: " << entry.idxTI << '\n';
+		}
+	}
+
 	void WriteError(LOG& log, const Error::Entry& e)
 	{
 		WriteLine(log, Error::ToString(e).c_str());
