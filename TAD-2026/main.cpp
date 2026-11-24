@@ -61,6 +61,7 @@ int wmain(int argc, wchar_t* argv[])
 			else
 			{
 				Log::WriteLexTable(log, lex.lexTable);
+				Log::WriteIdTable(log, lex.idTable);
 				Log::Flush(log);
 			}
 		}
