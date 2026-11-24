@@ -57,6 +57,12 @@ int wmain(int argc, wchar_t* argv[])
 				Log::Flush(log);
 				result = 1;
 			}
+
+			else
+			{
+				Log::WriteLexTable(log, lex.lexTable);
+				Log::Flush(log);
+			}
 		}
 	}
 
