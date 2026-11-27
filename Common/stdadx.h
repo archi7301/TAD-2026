@@ -13,3 +13,9 @@
 #include <system_error>
 #include <memory>
 #include <cstdint>
+#include <sstream>
+#include <array>
+#include <map>
+#include <utility>
+#include <optional>
+#include <iostream>
