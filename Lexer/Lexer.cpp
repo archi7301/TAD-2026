@@ -1,435 +1,323 @@
 #include "Lexer.h"
 #include "FST.h"
-#include "../Common/IT.h"
+#include "../Common/Bytecode.h"
+
+#include <cstddef>
+#include <string>
+#include <utility>
 
 namespace Lexer
 {
-	// Один выделенный фрагмент, который ещё предстоит распознать
-	struct Token
-	{
-		std::string text;	// написание токена, например flux или <-
-		int line;			// номер строки, в которой встречается токен
-		int pos;			// позиция токена в строке
-	};
+    struct Token
+    {
+        std::string text;
+        int line;
+        int pos;
+    };
 
-	// Текущее положение сканера в тексте, который он анализирует
-	struct Cursor
-	{
-		size_t idx{};		// индекс байта в in.text, на котором находится сканер
-		int line{ 1 };		// номер текущей строки
-		int pos{ 1 };		// позиция в текущей строке
-	};
+    struct Cursor
+    {
+        std::size_t index{};
+        int line{ 1 };
+        int pos{ 1 };
+    };
 
-	// Правило распознавания токена
-	struct Rule
-	{
-		FST::FST fst;		// конечный автомат, распознающий токен
-		char lexema;		// код распознанной лексемы
-		char attr{LT::ATTR_NONE};			// дополнительный атрибут
-	};
+    struct Rule
+    {
+        FST::FST fst;
+        char lexema;
+        char attr = LT::ATTR_NONE;
+    };
 
-	static void AddWord(std::vector<Rule>& rules, const std::string& word, char lexema, char attr = LT::ATTR_NONE)
-	{
-		Rule rule;
-		rule.fst = FST::MakeWord(word);
-		rule.lexema = lexema;
-		rule.attr = attr;
-		rules.push_back(rule);
-	}
+    static void AddWord(std::vector<Rule>& rules, const std::string& word, char lexema, char attr = LT::ATTR_NONE)
+    {
+        rules.push_back({ FST::MakeWord(word), lexema, attr });
+    }
 
-	// Строит правила в порядке проверки.
-	// Ключевые слова идут раньше общего правила идентификатора:
-	// Classify возвращает первое совпадение.
-	static std::vector<Rule> BuildRules()
-	{
-		std::vector<Rule> rules;
+    static std::vector<Rule> BuildRules()
+    {
+        std::vector<Rule> rules;
 
-		// Добавляет правило точного совпадения с word:
-		// автомат, код лексемы и дополнительный атрибут.
-		AddWord(rules, "summon", LEX_SUMMON);
-		AddWord(rules, "lore", LEX_LORE);
-		AddWord(rules, "spell", LEX_SPELL);
-		AddWord(rules, "ritual", LEX_RITUAL);
-		AddWord(rules, "open", LEX_OPEN);
-		AddWord(rules, "close", LEX_CLOSE);
-		AddWord(rules, "rune", LEX_RUNE);
-		AddWord(rules, "flux", LEX_FLUX);
-		AddWord(rules, "chant", LEX_CHANT);
-		AddWord(rules, "when", LEX_WHEN);
-		AddWord(rules, "then", LEX_THEN);
-		AddWord(rules, "else", LEX_ELSE);
-		AddWord(rules, "cycle", LEX_CYCLE);
-		AddWord(rules, "until", LEX_UNTIL);
-		AddWord(rules, "octet", LEX_OCTET, LT::ATTR_OCTET);
-		AddWord(rules, "truth", LEX_TRUTH, LT::ATTR_TRUTH);
-		AddWord(rules, "yes", LEX_YES);
-		AddWord(rules, "no", LEX_NO);
-		AddWord(rules, "fuse", LEX_FUSE);
-		AddWord(rules, "mask", LEX_MASK);
-		AddWord(rules, "flip", LEX_FLIP);
+        // Classify выбирает первое совпадение, поэтому ключевые слова идут до идентификатора.
+        AddWord(rules, "summon", LEX_SUMMON);
+        AddWord(rules, "lore", LEX_LORE);
+        AddWord(rules, "spell", LEX_SPELL);
+        AddWord(rules, "ritual", LEX_RITUAL);
+        AddWord(rules, "open", LEX_OPEN);
+        AddWord(rules, "close", LEX_CLOSE);
+        AddWord(rules, "rune", LEX_RUNE);
+        AddWord(rules, "flux", LEX_FLUX);
+        AddWord(rules, "chant", LEX_CHANT);
+        AddWord(rules, "when", LEX_WHEN);
+        AddWord(rules, "then", LEX_THEN);
+        AddWord(rules, "else", LEX_ELSE);
+        AddWord(rules, "cycle", LEX_CYCLE);
+        AddWord(rules, "until", LEX_UNTIL);
+        AddWord(rules, "octet", LEX_OCTET, LT::ATTR_OCTET);
+        AddWord(rules, "truth", LEX_TRUTH, LT::ATTR_TRUTH);
+        AddWord(rules, "yes", LEX_YES);
+        AddWord(rules, "no", LEX_NO);
+        AddWord(rules, "fuse", LEX_FUSE);
+        AddWord(rules, "mask", LEX_MASK);
+        AddWord(rules, "flip", LEX_FLIP);
 
-		AddWord(rules, ";", LEX_SEMICOLON);
-		AddWord(rules, ",", LEX_COMMA);
-		AddWord(rules, "(", LEX_LEFTHESIS);
-		AddWord(rules, ")", LEX_RIGHTHESIS);
-		AddWord(rules, ":", LEX_COLON);
-		AddWord(rules, "=", LEX_EQUALS);
-		AddWord(rules, "+", LEX_PLUS);
-		AddWord(rules, "-", LEX_MINUS);
-		AddWord(rules, "*", LEX_STAR);
-		AddWord(rules, "<", LEX_LEFT_ANGLE_BRACKET);
-		AddWord(rules, ">", LEX_RIGHT_ANGLE_BRACKET);
-		AddWord(rules, "->", LEX_RIGHT_ARROW);
-		AddWord(rules, "<-", LEX_LEFT_ARROW);
-		AddWord(rules, "~>", LEX_TILDE_ARROW);
-		AddWord(rules, "==", LEX_EQUAL);
-		AddWord(rules, "!=", LEX_NOT_EQUAL);
+        AddWord(rules, ";", LEX_SEMICOLON);
+        AddWord(rules, ",", LEX_COMMA);
+        AddWord(rules, "(", LEX_LEFTHESIS);
+        AddWord(rules, ")", LEX_RIGHTHESIS);
+        AddWord(rules, ":", LEX_COLON);
+        AddWord(rules, "=", LEX_EQUALS);
+        AddWord(rules, "+", LEX_PLUS);
+        AddWord(rules, "-", LEX_MINUS);
+        AddWord(rules, "*", LEX_STAR);
+        AddWord(rules, "<", LEX_LEFT_ANGLE_BRACKET);
+        AddWord(rules, ">", LEX_RIGHT_ANGLE_BRACKET);
+        AddWord(rules, "->", LEX_RIGHT_ARROW);
+        AddWord(rules, "<-", LEX_LEFT_ARROW);
+        AddWord(rules, "~>", LEX_TILDE_ARROW);
+        AddWord(rules, "==", LEX_EQUAL);
+        AddWord(rules, "!=", LEX_NOT_EQUAL);
 
-		// Идентификатор: [a-z][a-z0-9_]*.
-		// Ограничение длины проверяет ValidateToken, чтобы выдать ошибку 103.
-		{
-			Rule rule;
-			rule.fst = FST::Create(2);
-			FST::AddRelation(rule.fst, 0, FST::ANY_LETTER, 1);
-			FST::AddRelation(rule.fst, 1, FST::ANY_LETTER, 1);
-			FST::AddRelation(rule.fst, 1, FST::ANY_DIGIT, 1);
-			FST::AddRelation(rule.fst, 1, '_', 1);
-			FST::SetFinal(rule.fst, 1);
+        {
+            Rule rule;
+            rule.fst = FST::Create(2);
+            FST::AddRelation(rule.fst, 0, FST::ANY_LETTER, 1);
+            FST::AddRelation(rule.fst, 1, FST::ANY_LETTER, 1);
+            FST::AddRelation(rule.fst, 1, FST::ANY_DIGIT, 1);
+            FST::AddRelation(rule.fst, 1, '_', 1);
+            FST::SetFinal(rule.fst, 1);
 
-			rule.lexema = LEX_ID;
-			rules.push_back(rule);
-		}
+            rule.lexema = LEX_ID;
+            rules.push_back(std::move(rule));
+        }
 
-		// Целое без знака и ведущих нулей: 0 | [1-9][0-9]*.
-		// Состояние 1 принимает только одиночный ноль,
-		// состояние 2 позволяет продолжать число любыми цифрами.
-		// Проверка значения на превышение 255 выполняется отдельно.
-		{
-			Rule rule;
-			rule.fst = FST::Create(3);
-			FST::AddRelation(rule.fst, 0, '0', 1);
-			for (char ch = '1'; ch <= '9'; ++ch)
-				FST::AddRelation(rule.fst, 0, ch, 2);
-			FST::AddRelation(rule.fst, 2, FST::ANY_DIGIT, 2);
-			FST::SetFinal(rule.fst, 1);
-			FST::SetFinal(rule.fst, 2);
+        {
+            Rule rule;
+            rule.fst = FST::Create(3);
+            FST::AddRelation(rule.fst, 0, '0', 1);
+            for (char ch = '1'; ch <= '9'; ++ch)
+                FST::AddRelation(rule.fst, 0, ch, 2);
+            FST::AddRelation(rule.fst, 2, FST::ANY_DIGIT, 2);
+            FST::SetFinal(rule.fst, 1);
+            FST::SetFinal(rule.fst, 2);
 
-			rule.lexema = LEX_INT_LITERAL;
-			rules.push_back(rule);
+            rule.lexema = LEX_INT_LITERAL;
+            rules.push_back(std::move(rule));
+        }
 
-		}
+        {
+            Rule rule;
+            rule.fst = FST::Create(3);
+            FST::AddRelation(rule.fst, 0, '\'', 1);
+            FST::AddRelation(rule.fst, 1, FST::STRING_CHAR, 1);
+            FST::AddRelation(rule.fst, 1, '\'', 2);
+            FST::SetFinal(rule.fst, 2);
 
-		// Строка: открывающий апостроф, содержимое, закрывающий апостроф.
-		// Петля в состоянии 1 допускает пустое содержимое.
-		// Закрытие и длину строки отдельно проверяет ValidateToken.
-		{
-			Rule rule;
-			rule.fst = FST::Create(3);
-			FST::AddRelation(rule.fst, 0, '\'', 1);
-			FST::AddRelation(rule.fst, 1, FST::STRING_CHAR, 1);
-			FST::AddRelation(rule.fst, 1, '\'', 2);
-			FST::SetFinal(rule.fst, 2);
+            rule.lexema = LEX_STR_LITERAL;
+            rules.push_back(std::move(rule));
+        }
 
-			rule.lexema = LEX_STR_LITERAL;
-			rules.push_back(rule);
-		}
+        return rules;
+    }
 
-		return rules;
-	}
+    static int TokenError(const Token& token)
+    {
+        const char first = token.text.front();
+        const std::size_t length = token.text.size();
 
-	// Проверяет закрытие строкового литерала и ограничения длины.
-	// При первой обнаруженной ошибке добавляет диагностику и возвращает false.
-	// Допустимость написания токена затем проверяет Classify.
-	static bool ValidateToken(const Token& token, LEX& result)
-	{
-		if (token.text.empty())
-			return true;
+        if (first == '\'')
+        {
+            if (length < 2 || token.text.back() != '\'')
+                return 101;
 
-		const char firstChar = token.text.front();
+            if (length - 2 > TBC_MAX_STRING_SIZE)
+                return 104;
+        }
+        else if (first >= 'a' && first <= 'z' && length > IT::ID_MAXSIZE)
+        {
+            return 103;
+        }
 
-		// Один апостроф не образует закрытую строку:
-		// нужны как минимум открывающий и закрывающий разделители.
-		if (firstChar == '\'')
-		{
-			if (token.text.size() < 2 || token.text.back() != '\'')
-			{
-				result.errors.push_back(
-					Error::geterrorin(101, token.line, token.pos)
-				);
-				return false;
-			}
+        return 0;
+    }
 
-			// Апострофы не входят в длину содержимого.
-			// Вычитание безопасно: наличие обоих разделителей уже проверено.
-			const size_t contentLength = token.text.size() - 2;
-			if (contentLength > TBC_MAX_STRING_SIZE)
-			{
-				result.errors.push_back(
-					Error::geterrorin(104, token.line, token.pos)
-				);
-				return false;
-			}
+    static const Rule* Classify(const std::vector<Rule>& rules, const std::string& text)
+    {
+        for (const Rule& rule : rules)
+        {
+            if (FST::Execute(rule.fst, text))
+                return &rule;
+        }
 
-			return true;
-		}
+        return nullptr;
+    }
 
-		if (firstChar >= 'a' && firstChar <= 'z')
-		{
-			if (token.text.size() > IT::ID_MAXSIZE)
-			{
-				result.errors.push_back(
-					Error::geterrorin(103, token.line, token.pos)
-				);
-				return false;
-			}
+    static void Advance(const std::string& text, Cursor& cursor)
+    {
+        if (text[cursor.index] == '\n')
+        {
+            cursor.line++;
+            cursor.pos = 1;
+        }
+        else
+            cursor.pos++;
 
-			return true;
-		}
+        cursor.index++;
+    }
 
-		return true;
-	}
+    static void SkipWhitespace(const std::string& text, Cursor& cursor)
+    {
+        while (cursor.index < text.size())
+        {
+            const char ch = text[cursor.index];
+            if (ch == ' ' || ch == '\t' || ch == '\n')
+                Advance(text, cursor);
+            else
+                break;
+        }
+    }
 
-	// Возвращает указатель на первое подходящее правило или nullptr.
-	// Указатель ссылается на элемент rules: вектор должен продолжать
-	// существовать и не изменяться во время использования результата.
-	static const Rule* Classify(const std::vector<Rule>& rules, const std::string& text)
-	{
-		for (const Rule& rule : rules)
-		{
-			if (FST::Execute(rule.fst, text))
-				return &rule;
-		}
+    static bool IsWordChar(char ch)
+    {
+        return (ch >= 'a' && ch <= 'z') ||
+               (ch >= '0' && ch <= '9') ||
+               ch == '_';
+    }
 
-		return nullptr;
-	}
+    static bool IsDoubleSymbol(char first, char second)
+    {
+        return (first == '-' && second == '>') ||
+            (first == '<' && second == '-') ||
+            (first == '~' && second == '>') ||
+            (first == '=' && second == '=') ||
+            (first == '!' && second == '=');
+    }
 
-	// Продвинуть курсор с текущего символа на следущий, 
-	// обноивляя при этом номер строки и позицию в строке
-	static void Advance(const std::string& text, Cursor& cursor)
-	{
-		if (cursor.idx >= text.size())
-			return;
+    static bool NextToken(const std::string& text, Cursor& cursor, Token& token)
+    {
+        SkipWhitespace(text, cursor);
+        if (cursor.index == text.size())
+            return false;
 
-		if (text[cursor.idx] == '\n')
-		{
-			cursor.line++;
-			cursor.pos = 1;
-		}
-		else
-			cursor.pos++;
+        const std::size_t start = cursor.index;
+        token.line = cursor.line;
+        token.pos = cursor.pos;
 
-		cursor.idx++;
-	}
+        if (text[start] == '\'')
+        {
+            Advance(text, cursor);
 
-	// Пропускает пробелы, '\t' и '\n', вызывая Advance
-	// Останавливается перед первым непробельным символом или в конце текста
-	static void SkipWhitespace(const std::string& text, Cursor& cursor)
-	{
-		while (cursor.idx < text.size())
-		{
-			const char ch = text[cursor.idx];
-			if (ch == ' ' || ch == '\t' || ch == '\n')
-				Advance(text, cursor);
-			else
-				break;
-		}
-	}
+            // Незакрытая строка заканчивается перед переводом строки или на конце файла.
+            while (cursor.index < text.size() && text[cursor.index] != '\'' && text[cursor.index] != '\n')
+                Advance(text, cursor);
 
-	// Возвращает true, если символ ch может быть частью идентификатора (токена-слова)
-	static bool IsWordChar(char ch)
-	{
-		return (ch >= 'a' && ch <= 'z') ||
-			   (ch >= '0' && ch <= '9') ||
-			   ch == '_';
-	}
+            if (cursor.index < text.size() && text[cursor.index] == '\'')
+                Advance(text, cursor);
+        }
+        else if (IsWordChar(text[start]))
+        {
+            while (cursor.index < text.size() && IsWordChar(text[cursor.index]))
+                Advance(text, cursor);
+        }
+        else
+        {
+            Advance(text, cursor);
+            if (cursor.index < text.size() && IsDoubleSymbol(text[start], text[cursor.index]))
+                Advance(text, cursor);
+        }
 
-	// Вспомогательная проверка для двухсимвольных знаков
-	static bool IsDoubleSymbol(char first, char second)
-	{
-		return (first == '-' && second == '>') ||
-			(first == '<' && second == '-') ||
-			(first == '~' && second == '>') ||
-			(first == '=' && second == '=') ||
-			(first == '!' && second == '=');
-	}
+        token.text.assign(text, start, cursor.index - start);
+        return true;
+    }
 
-	// Выделяет один фрагмент и сохраняет координаты его начала.
-	// true означает, что фрагмент получен, но ещё не признан допустимым.
-	// false означает конец текста; token при этом использовать нельзя.
-	static bool NextToken(const std::string& text, Cursor& cursor, Token& token)
-	{
+    static int SaveIdEntry(LEX& result, const Token& token, char lexema)
+    {
+        if (lexema != LEX_ID && lexema != LEX_STR_LITERAL && lexema != LEX_INT_LITERAL)
+            return LT::LT_TI_NULLIDX;
 
-		SkipWhitespace(text, cursor);
+        IT::Entry entry{};
+        int index = IT::TI_NULLIDX;
 
-		if (cursor.idx >= text.size())
-			return false;
-		
-		token.text.clear();
-		token.line = cursor.line;
-		token.pos = cursor.pos;
+        if (lexema == LEX_ID)
+        {
+            entry.name = token.text;
+        }
+        else if (lexema == LEX_STR_LITERAL)
+        {
+            entry.id_type = IT::ID_TYPE::LITERAL;
+            entry.id_data_type = IT::ID_DATA_TYPE::STR;
+            entry.str = token.text.substr(1, token.text.size() - 2);
+            index = IT::FindLiteral(result.idTable, entry.str);
+        }
+        else
+        {
+            entry.id_type = IT::ID_TYPE::LITERAL;
+            // yes и no имеют тот же код лексемы, что и целые числа.
+            if (token.text == "yes" || token.text == "no")
+            {
+                entry.id_data_type = IT::ID_DATA_TYPE::TRUTH;
+                entry.value = (token.text == "yes") ? 1 : 0;
+            }
+            else
+            {
+                entry.id_data_type = IT::ID_DATA_TYPE::OCTET;
+                for (char ch : token.text)
+                {
+                    entry.value = entry.value * 10 + (ch - '0');
+                    if (entry.value > 255)
+                    {
+                        // 256 означает выход за диапазон для семантической проверки.
+                        entry.value = 256;
+                        break;
+                    }
+                }
+            }
+            index = IT::FindLiteral(result.idTable, entry.id_data_type, entry.value);
+        }
 
-		// 1. Строковые литералы, заключённые в одинарные кавычки
-		if (text[cursor.idx] == '\'')
-		{
-			token.text.push_back(text[cursor.idx]);
-			Advance(text, cursor);
+        if (index == IT::TI_NULLIDX)
+        {
+            index = static_cast<int>(result.idTable.table.size());
+            entry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
+            IT::Add(result.idTable, std::move(entry));
+        }
 
-			// Незакрытый фрагмент тоже возвращаем как токен.
-			// Перевод строки оставляем для следующего SkipWhitespace.
-			while (cursor.idx < text.size() && text[cursor.idx] != '\'' && text[cursor.idx] != '\n')
-			{
-				token.text.push_back(text[cursor.idx]);
-				Advance(text, cursor);
-			}
+        return index;
+    }
 
-			if (cursor.idx < text.size() && text[cursor.idx] == '\'')
-			{
-				token.text.push_back(text[cursor.idx]);
-				Advance(text, cursor);
-			}
-		}
+    LEX Analyze(const In::IN& in)
+    {
+        static const auto rules = BuildRules();
+        LEX result{ LT::Create(), IT::Create(), {} };
+        Cursor cursor;
+        Token token;
 
-		// 2. Словоподобные фрагменты
-		else if (IsWordChar(text[cursor.idx]))
-		{
-			while (cursor.idx < text.size() && IsWordChar(text[cursor.idx]))
-			{
-				token.text.push_back(text[cursor.idx]);
-				Advance(text, cursor);
-			}
-		}
+        while (NextToken(in.text, cursor, token))
+        {
+            int error = TokenError(token);
+            const Rule* rule = nullptr;
+            if (error == 0)
+            {
+                rule = Classify(rules, token.text);
+                if (rule == nullptr)
+                    error = 102;
+            }
 
-		// 3. Двухсимвольные знаки
-		else if (cursor.idx + 1 < text.size() && IsDoubleSymbol(text[cursor.idx], text[cursor.idx + 1]))
-		{
-			token.text.push_back(text[cursor.idx]);
-			Advance(text, cursor);
+            if (error != 0)
+            {
+                result.errors.push_back(Error::geterrorin(error, token.line, token.pos));
+                continue;
+            }
 
-			token.text.push_back(text[cursor.idx]);
-			Advance(text, cursor);
-		}
+            LT::Entry entry{};
+            entry.lexema = rule->lexema;
+            entry.attr = rule->attr;
+            entry.sn = token.line;
+            entry.pos = token.pos;
+            entry.idxTI = SaveIdEntry(result, token, entry.lexema);
+            LT::Add(result.lexTable, entry);
+        }
 
-		// 4. Одиночные символы
-		else
-		{
-			token.text.push_back(text[cursor.idx]);
-			Advance(text, cursor);
-		}
-
-		return true;
-	}
-
-	LEX Analyze(const In::IN& in)
-	{
-		LEX result;
-		const auto rules = BuildRules();
-		result.lexTable = LT::Create();
-		result.idTable = IT::Create();
-		Cursor cursor;
-		Token token;
-
-		while (NextToken(in.text, cursor, token))
-		{
-			if (!ValidateToken(token, result))
-				continue;
-
-			const Rule* rule = Classify(rules, token.text);
-			if (rule == nullptr)
-			{
-				result.errors.push_back(
-					Error::geterrorin(102, token.line, token.pos)
-				);
-				continue;
-			}
-
-			LT::Entry lexEntry{};
-			lexEntry.lexema = rule->lexema;
-			lexEntry.attr = rule->attr;
-			lexEntry.sn = token.line;
-			lexEntry.pos = token.pos;
-			lexEntry.idxTI = LT::LT_TI_NULLIDX;
-
-			if (lexEntry.lexema == LEX_STR_LITERAL)
-			{
-				const auto content = token.text.substr(1, token.text.size() - 2);
-				int idx = IT::FindLiteral(result.idTable, content);
-
-				if (idx == IT::TI_NULLIDX)
-				{
-					idx = static_cast<int>(result.idTable.table.size());
-
-					IT::Entry idEntry{};
-					idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
-					idEntry.id_data_type = IT::ID_DATA_TYPE::STR;
-					idEntry.str = content;
-					idEntry.id_type = IT::ID_TYPE::LITERAL;
-					IT::Add(result.idTable, idEntry);
-				}
-
-				lexEntry.idxTI = idx;
-			}
-			
-			else if (token.text == "yes" || token.text == "no")
-			{
-				const long long truth_value = (token.text == "yes") ? 1 : 0;
-
-				int idx = IT::FindLiteral(result.idTable, IT::ID_DATA_TYPE::TRUTH, truth_value);
-				if (idx == IT::TI_NULLIDX)
-				{
-					idx = static_cast<int>(result.idTable.table.size());
-					IT::Entry idEntry{};
-					idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
-					idEntry.id_data_type = IT::ID_DATA_TYPE::TRUTH;
-					idEntry.value = truth_value;
-					idEntry.id_type = IT::ID_TYPE::LITERAL;
-					IT::Add(result.idTable, idEntry);
-				}
-
-				lexEntry.idxTI = idx;
-			}
-
-			else if (lexEntry.lexema == LEX_INT_LITERAL)
-			{
-				long long value = 0;
-				for (char ch : token.text)
-				{
-					value = value * 10 + (ch - '0');
-					if (value > 255)
-					{
-						value = 256;
-						break;
-					}
-				}
-
-				int idx = IT::FindLiteral(result.idTable, IT::ID_DATA_TYPE::OCTET, value);
-				if (idx == IT::TI_NULLIDX)
-				{
-					idx = static_cast<int>(result.idTable.table.size());
-					IT::Entry idEntry{};
-					idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
-					idEntry.id_data_type = IT::ID_DATA_TYPE::OCTET;
-					idEntry.value = value;
-					idEntry.id_type = IT::ID_TYPE::LITERAL;
-					IT::Add(result.idTable, idEntry);
-				}
-
-				lexEntry.idxTI = idx;
-			}
-
-			else if (lexEntry.lexema == LEX_ID)
-			{
-				lexEntry.idxTI = static_cast<int>(result.idTable.table.size());
-				IT::Entry idEntry{};
-				idEntry.name = token.text;
-				idEntry.idx_first_LE = static_cast<int>(result.lexTable.table.size());
-				idEntry.id_type = IT::ID_TYPE::UNKNOWN;
-				idEntry.id_data_type = IT::ID_DATA_TYPE::NONE;
-				IT::Add(result.idTable, idEntry);
-			}
-
-			LT::Add(result.lexTable, lexEntry);
-		}
-
-		return result;
-	}
+        return result;
+    }
 }

@@ -19,12 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FST.h" />
-    <ClInclude Include="Lexer.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="FST.cpp" />
     <ClCompile Include="Lexer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FST.h" />
+    <ClInclude Include="Lexer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
