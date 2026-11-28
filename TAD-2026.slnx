@@ -3,9 +3,10 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Common/Common.vcxproj" Id="48aa3452-123e-4ec3-97ef-b908933277f2">
-    <BuildDependency Project="Lexer/Lexer.vcxproj" />
-  </Project>
+  <Project Path="Common/Common.vcxproj" Id="48aa3452-123e-4ec3-97ef-b908933277f2" />
   <Project Path="Lexer/Lexer.vcxproj" Id="3b7642bd-3ca0-4c5a-90a1-b2bbad1d45bd" />
-  <Project Path="TAD-2026/TAD-2026.vcxproj" Id="5b453a81-72ef-4d25-bdd8-4b6b7ed5180f" />
+  <Project Path="Syntax/Syntax.vcxproj" Id="872996bc-7952-46f2-83ca-7a09fbd53a57" />
+  <Project Path="TAD-2026/TAD-2026.vcxproj" Id="5b453a81-72ef-4d25-bdd8-4b6b7ed5180f">
+    <BuildDependency Project="Syntax/Syntax.vcxproj" />
+  </Project>
 </Solution>
