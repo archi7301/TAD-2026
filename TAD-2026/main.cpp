@@ -3,8 +3,8 @@
 #include "../Common/Parm.h"
 #include "../Common/In.h"
 #include "../Common/Log.h"
-#include "../Common/Out.h"
 #include "../Lexer/Lexer.h"
+#include "../Syntax/MFST.h"
 
 static void PrintError(const Error::Entry& e)
 {
@@ -62,6 +62,18 @@ int wmain(int argc, wchar_t* argv[])
 			{
 				Log::WriteLexTable(log, lex.lexTable);
 				Log::WriteIdTable(log, lex.idTable);
+
+				const auto grammar = GRB::getGreibach();
+				const auto result = MFST::parse(lex.lexTable, grammar, &std::cout);
+
+				if (!result.accepted)
+					throw result.errors[0].value_or(Error::geterror(200));
+
+				std::ostringstream rules;
+				MFST::writeRules(result, grammar, rules);
+				Log::WriteSection(log, LOG_SECT_TREE);
+				Log::WriteLine(log, rules.str().c_str());
+
 				Log::Flush(log);
 			}
 		}
